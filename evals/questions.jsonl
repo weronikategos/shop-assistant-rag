@@ -1,0 +1,17 @@
+{"id": "q01", "question": "How much does delivery to a parcel locker cost?", "source": "shipping.md", "must_include": ["12.99"]}
+{"id": "q02", "question": "From what order value is shipping free?", "source": "shipping.md", "must_include": ["150"]}
+{"id": "q03", "question": "Can I send a grinder to Germany?", "source": "shipping.md", "must_include": ["coffee and tea"]}
+{"id": "q04", "question": "How many days do I have to return a product?", "source": "returns.md", "must_include": ["14"]}
+{"id": "q05", "question": "Can I return an opened bag of coffee?", "source": "returns.md", "must_include": ["hygiene"]}
+{"id": "q06", "question": "How long is the warranty on the grinder burrs?", "source": "returns.md", "must_include": ["3"]}
+{"id": "q07", "question": "Do you accept cash on delivery?", "source": "payments-and-account.md", "must_include": ["not"]}
+{"id": "q08", "question": "Can I get a VAT invoice after placing the order?", "source": "payments-and-account.md", "must_include": ["NIP"]}
+{"id": "q09", "question": "At what temperature should I brew the Sencha green tea?", "source": "coffee-and-tea.md", "must_include": ["70"]}
+{"id": "q10", "question": "Which coffee is best for a V60 pour-over?", "source": "coffee-and-tea.md", "must_include": ["Ethiopia"]}
+{"id": "q11", "question": "Can I wash the travel mug in a dishwasher?", "source": "accessories.md", "must_include": ["not"]}
+{"id": "q12", "question": "How do I clean the burrs of the hand grinder?", "source": "accessories.md", "must_include": ["brush"]}
+{"id": "q13", "question": "Are the cantuccini safe for someone with a nut allergy?", "source": "sweets-and-contact.md", "must_include": ["almond"]}
+{"id": "q14", "question": "What are the opening hours of the Poznań roastery on Saturday?", "source": "sweets-and-contact.md", "must_include": ["2 pm"]}
+{"id": "q15", "question": "Do you sell decaf coffee?", "source": "coffee-and-tea.md", "must_include": ["decaf"]}
+{"id": "q16", "question": "Do you offer espresso machine repairs?", "expect_no_answer": true}
+{"id": "q17", "question": "What is the weather in Poznań today?", "expect_no_answer": true}
