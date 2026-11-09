@@ -4,12 +4,11 @@ import time
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 
-import httpx
 from fastapi import FastAPI, HTTPException, Request
 from google.genai import errors
 from pydantic import BaseModel, Field
 
-from .llm import friendly_error
+from .llm import TRANSPORT_ERRORS, friendly_error
 
 RATE_LIMIT = int(os.environ.get("RATE_LIMIT_PER_MINUTE", "10"))  # protects the free-tier quota
 
@@ -93,7 +92,7 @@ def create_app(assistant=None, rate_limit=RATE_LIMIT):
             raise HTTPException(429, "Too many questions. Please wait a minute.")
         try:
             answer = request.app.state.assistant.ask(body.question)
-        except (errors.APIError, httpx.TransportError) as exc:
+        except (errors.APIError, *TRANSPORT_ERRORS) as exc:
             raise HTTPException(503, friendly_error(exc)) from exc
         return AnswerOut(**answer.__dict__)
 

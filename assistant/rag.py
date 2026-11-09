@@ -9,7 +9,8 @@ Answer the customer's question using ONLY the numbered sources provided with it.
 - Cite the sources you used in square brackets, e.g. [1] or [2][3].
 - If the sources don't contain the answer, say that you don't have that information and suggest
   writing to hello@coffeeshop.example. Don't guess or use outside knowledge.
-- Prices are in PLN. Keep the answer short and friendly, in the language of the question."""
+- Prices are in PLN. Keep the answer short and friendly.
+- Answer in the language of the question (an English question gets an English answer, even though the shop is in Poland)."""
 
 NO_ANSWER = "Sorry, I don't have that information. Please write to hello@coffeeshop.example."
 

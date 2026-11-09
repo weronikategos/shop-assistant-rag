@@ -8,6 +8,14 @@ from google.genai import errors, types
 
 from . import config
 
+# google-genai 3.x sends requests with httpx2, older versions with httpx; network errors can come from either.
+try:
+    import httpx2
+except ImportError:  # pragma: no cover
+    httpx2 = None
+TRANSPORT_ERRORS = (httpx.TransportError,) + ((httpx2.TransportError,) if httpx2 else ())
+TIMEOUT_ERRORS = (httpx.TimeoutException,) + ((httpx2.TimeoutException,) if httpx2 else ())
+
 RETRY_CODES = (429, 500, 502, 503)  # worth another try on the same model
 FALLBACK_CODES = (404, 429, 500, 502, 503, 504)  # move on to the next model
 RETRY_DELAYS = (2, 4)  # seconds before the 2nd and 3rd attempt
@@ -57,7 +65,7 @@ class GeminiGenerator:
                 result = self._generate_with(model, system, prompt)
                 result.attempts += attempts
                 return result
-            except (errors.APIError, httpx.TransportError) as exc:
+            except (errors.APIError, *TRANSPORT_ERRORS) as exc:
                 attempts += getattr(exc, "attempts", 1)
                 can_fall_back = not isinstance(exc, errors.APIError) or exc.code in FALLBACK_CODES
                 if not can_fall_back or i == len(self.models) - 1:
@@ -70,7 +78,7 @@ class GeminiGenerator:
             try:
                 response = self.client.models.generate_content(model=model, contents=prompt, config=cfg)
                 break
-            except httpx.TimeoutException as exc:
+            except TIMEOUT_ERRORS as exc:
                 exc.attempts = attempt
                 raise  # it already waited a full minute, so try the next model instead
             except errors.APIError as exc:
@@ -78,7 +86,7 @@ class GeminiGenerator:
                     exc.attempts = attempt
                     raise
                 problem = f"busy ({exc.code})"
-            except httpx.TransportError as exc:
+            except TRANSPORT_ERRORS as exc:
                 if delay is None:
                     exc.attempts = attempt
                     raise
@@ -94,7 +102,7 @@ class GeminiGenerator:
 
 def friendly_error(exc):
     """One readable line for an error that is still there after the retries and fallbacks."""
-    if isinstance(exc, httpx.TransportError):
+    if isinstance(exc, TRANSPORT_ERRORS):
         return "Connection to the Gemini API was interrupted. Please try again."
     if exc.code in (502, 503, 504):
         return f"The model is busy right now ({exc.code}). Please try again in a minute."

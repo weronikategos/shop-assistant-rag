@@ -37,9 +37,7 @@ def answer_ok(answer_text, question):
 def run(assistant, questions, retrieval_only=False, out=print):
     """Returns a summary dict; API errors are counted, they don't stop the run."""
     from google.genai import errors
-    import httpx
-
-    from assistant.llm import friendly_error
+    from assistant.llm import TRANSPORT_ERRORS, friendly_error
 
     hits_ok = answered = correct = failed_calls = 0
     answerable = [q for q in questions if "source" in q]
@@ -52,7 +50,7 @@ def run(assistant, questions, retrieval_only=False, out=print):
         if not retrieval_only:
             try:
                 answer = assistant.ask(q["question"])
-            except (errors.APIError, httpx.TransportError) as exc:
+            except (errors.APIError, *TRANSPORT_ERRORS) as exc:
                 failed_calls += 1
                 out(f"[ERROR] {line}\n      {friendly_error(exc)}")
                 continue

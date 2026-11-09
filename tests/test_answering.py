@@ -139,3 +139,19 @@ def test_stats_summarise_the_log(tmp_path):
 
 def test_empty_log_has_no_latency(tmp_path):
     assert CallLog(tmp_path / "none.jsonl").stats()["latency_ms"] == {"avg": None, "p95": None}
+
+
+def test_network_errors_from_the_sdk_transport_are_handled(store, embedder, tmp_path):
+    """google-genai 3.x raises httpx2 errors, which are not subclasses of the httpx ones."""
+    httpx2 = pytest.importorskip("httpx2")
+    dropped = FakeChatClient(errors_by_model={"main-model": [httpx2.ReadError("reset")]})
+    assistant = make_assistant(store, embedder, tmp_path, dropped, fallbacks=["backup"])
+    assert assistant.ask("?").model == "main-model"  # dropped connection: retried on the same model
+    assert [r["model"] for r in dropped.requests] == ["main-model", "main-model"]
+
+    slow = FakeChatClient(errors_by_model={"main-model": [httpx2.ReadTimeout("slow")]})
+    assistant = make_assistant(store, embedder, tmp_path, slow, fallbacks=["backup"])
+    assert assistant.ask("?").model == "backup"  # timeout: straight to the next model
+    assert [r["model"] for r in slow.requests] == ["main-model", "backup"]
+
+    assert "interrupted" in friendly_error(httpx2.ReadError("reset"))
