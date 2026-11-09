@@ -8,32 +8,34 @@ It is built as retrieval-augmented generation (RAG): the help pages are split in
 
 The help pages are in [`docs/`](docs/) and describe the same shop and products as my [flask-sql-shop](https://github.com/weronikategos/flask-sql-shop).
 
-An example call (the numbers differ from run to run):
+A real call from my test run on 9 November 2026 (sources shortened; the numbers differ from run to run):
 
 ```
-POST /ask  {"question": "Can I return an opened bag of coffee?"}
+POST /ask  {"question": "How much is shipping to a parcel locker?"}
 
 {
-  "answer": "No. Opened coffee and tea can't be returned for hygiene reasons, unless they are faulty [1].",
+  "answer": "Shipping to an InPost parcel locker costs 12.99 PLN. If your order is over 150 PLN, shipping to a parcel locker in Poland is free! [1]",
   "sources": [
-    {"n": 1, "source": "returns.md", "section": "Returning a product", "similarity": 0.81},
-    {"n": 2, "source": "returns.md", "section": "Coffee that tastes wrong", "similarity": 0.74},
+    {"n": 1, "source": "shipping.md", "section": "Delivery options and prices", "similarity": 0.7133},
+    {"n": 2, "source": "shipping.md", "section": "Damaged parcels", "similarity": 0.6638},
     ...
   ],
-  "model": "gemini-3.8-flash",
-  "input_tokens": 742,
-  "output_tokens": 38,
-  "estimated_cost_usd": 0.0007,
-  "latency_ms": 1840
+  "model": "gemini-3.6-flash",
+  "input_tokens": 462,
+  "output_tokens": 489,
+  "estimated_cost_usd": 0.00218025,
+  "latency_ms": 18854
 }
 ```
+
+The answer came from the fallback model because the main one was overloaded at the time (see [Evaluation](#evaluation)). Most of the 489 output tokens are the model's thinking tokens.
 
 ## How it works
 1. **Chunking** ([`assistant/chunking.py`](assistant/chunking.py)): every Markdown page is split by its `##` sections, so a chunk is one topic (for example "Delivery options and prices"). The section heading stays in the chunk text, and sections longer than 900 characters are split again by paragraphs. The 6 pages give 29 chunks.
 2. **Embeddings** ([`assistant/embeddings.py`](assistant/embeddings.py)): chunks are embedded with `gemini-embedding-2` (768 dimensions) in batches of 20. Documents and questions get different prefixes (`title: … | text: …` and `task: question answering | query: …`), which is how this model tells them apart.
 3. **Vector store** ([`assistant/store.py`](assistant/store.py)): Chroma, saved on disk in `index/`, with cosine distance. A search returns the top 4 chunks with their similarity.
-4. **Answer** ([`assistant/rag.py`](assistant/rag.py)): the retrieved chunks go into the prompt as numbered sources. The system instruction tells the model to answer only from those sources, cite them as `[1]`, `[2]`, and point the customer to the shop's email when the sources don't cover the question.
-5. **Reliability** ([`assistant/llm.py`](assistant/llm.py)): errors 429/500/502/503 are retried twice (after 2 s and 4 s), then the next model in the fallback list is used. Timeouts (60 s) and 504 go straight to the next model. A blocked answer is replaced by a polite "can't help with that".
+4. **Answer** ([`assistant/rag.py`](assistant/rag.py)): the retrieved chunks go into the prompt as numbered sources. The system instruction tells the model to answer only from those sources, cite them as `[1]`, `[2]`, point the customer to the shop's email when the sources don't cover the question, and answer in the language of the question.
+5. **Reliability** ([`assistant/llm.py`](assistant/llm.py)): errors 429/500/502/503 are retried twice (after 2 s and 4 s), then the next model in the fallback list is used. Timeouts (60 s) and 504 go straight to the next model. A dropped connection is retried like a busy model; this covers both `httpx` and `httpx2`, which `google-genai` 3.x uses under the hood. A blocked answer is replaced by a polite "can't help with that".
 
 ## API
 | Endpoint | What it does |
@@ -46,19 +48,25 @@ POST /ask  {"question": "Can I return an opened bag of coffee?"}
 Each client can ask 10 questions per minute (`RATE_LIMIT_PER_MINUTE`), which protects the free-tier quota; above that the API returns 429. When Gemini is unavailable, `/ask` returns 503 with a readable message instead of a stack trace.
 
 ## Monitoring and cost
-Every question is written to `logs/calls.jsonl` as one JSON line: time, question (cut to 200 characters), model, number of attempts, input and output tokens, estimated cost, latency, the sources used and the status (`ok` or `error`). `GET /stats` aggregates the log (example output):
+Every question is written to `logs/calls.jsonl` as one JSON line: time, question (cut to 200 characters), model, number of attempts, input and output tokens, estimated cost, latency, the sources used and the status (`ok` or `error`). `GET /stats` aggregates the log. This is the real output after my test run (the 17 eval questions plus a few API calls):
 
 ```json
 {
-  "requests": 24,
+  "requests": 22,
   "errors": 1,
-  "latency_ms": {"avg": 1912, "p95": 3480},
-  "tokens": {"input": 17630, "output": 1104},
-  "estimated_cost_usd": 0.0174,
-  "by_model": {"gemini-3.8-flash": {"requests": 21, "estimated_cost_usd": 0.0159}, "...": "..."},
+  "latency_ms": {"avg": 51450, "p95": 84183},
+  "tokens": {"input": 10377, "output": 10270},
+  "estimated_cost_usd": 0.046029,
+  "by_model": {
+    "gemini-3.6-flash": {"requests": 19, "input_tokens": 9486, "output_tokens": 9848, "estimated_cost_usd": 0.044042},
+    "gemini-3.8-flash": {"requests": 1, "input_tokens": 411, "output_tokens": 382, "estimated_cost_usd": 0.001741},
+    "gemini-3.5-flash-lite": {"requests": 1, "input_tokens": 480, "output_tokens": 40, "estimated_cost_usd": 0.000244}
+  },
   "note": "Costs are estimated at paid-tier list prices; requests on the free tier are not billed."
 }
 ```
+
+The one error is a dropped connection that crashed the first eval run; that bug is fixed now (see Reliability above).
 
 The project runs on the free tier, so nothing is actually billed. The cost is estimated from the paid-tier price list in [`assistant/config.py`](assistant/config.py), to see what the same traffic would cost in production. Output tokens include the model's thinking tokens, because they are billed as output.
 
@@ -74,6 +82,8 @@ python -m evals.run_evals --only q05 q16     # chosen questions
 ```
 
 API errors (for example the free-tier rate limit) are counted separately and don't stop the run.
+
+**Results (9 November 2026, free tier):** retrieval found the right page for all 15 questions that have an answer in the help pages, and all 17 answers passed the checks (15 contained the key fact with a citation, 2 out-of-scope questions were declined with the shop's email). The main model, `gemini-3.8-flash`, was often overloaded or timed out on the free tier that day, so 19 of the 21 calls were answered by the fallback model `gemini-3.6-flash` (and one by `gemini-3.5-flash-lite`). That is also why the latency was high: about 51 s on average and 84 s at p95, most of it spent waiting for the main model before falling back. The costs above are estimates at paid-tier list prices; nothing was billed.
 
 ## Running it locally
 You need a free Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey).
@@ -101,7 +111,7 @@ Settings (environment variables): `GEMINI_MODEL` (default `gemini-3.8-flash`), `
 ```powershell
 python -m pytest
 ```
-33 tests, and none of them call the Gemini API: a bag-of-words embedder and a fake chat client stand in for it, so they run without a key and cost nothing. They cover chunking, the vector store, prompt building, retries and fallback models, timeouts, cost estimates, the call log and stats, the API endpoints (validation, 503, rate limit) and the eval checks. GitHub Actions runs them on every push and also builds the Docker image.
+34 tests, and none of them call the Gemini API: a bag-of-words embedder and a fake chat client stand in for it, so they run without a key and cost nothing. They cover chunking, the vector store, prompt building, retries and fallback models, timeouts and dropped connections (`httpx` and `httpx2`), cost estimates, the call log and stats, the API endpoints (validation, 503, rate limit) and the eval checks. GitHub Actions runs them on every push and also builds the Docker image.
 
 ## Project structure
 ```
