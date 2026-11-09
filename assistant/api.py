@@ -3,13 +3,17 @@ import os
 import time
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from google.genai import errors
 from pydantic import BaseModel, Field
 
 from .llm import TRANSPORT_ERRORS, friendly_error
 
+STATIC_DIR = Path(__file__).with_name("static")
 RATE_LIMIT = int(os.environ.get("RATE_LIMIT_PER_MINUTE", "10"))  # protects the free-tier quota
 
 
@@ -22,6 +26,7 @@ class Source(BaseModel):
     source: str
     section: str
     similarity: float
+    text: str
 
 
 class AnswerOut(BaseModel):
@@ -77,10 +82,11 @@ def create_app(assistant=None, rate_limit=RATE_LIMIT):
                   description="Answers customer questions from the shop's help pages, with sources.",
                   lifespan=lifespan)
     limiter = RateLimiter(rate_limit)
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-    @app.get("/")
-    def root():
-        return {"service": "shop-assistant", "docs": "/docs", "ask": "POST /ask", "stats": "/stats"}
+    @app.get("/", include_in_schema=False)
+    def chat_page():
+        return FileResponse(STATIC_DIR / "index.html")
 
     @app.get("/health")
     def health(request: Request):

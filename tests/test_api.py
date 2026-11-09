@@ -78,3 +78,19 @@ def test_rate_limiter_window_resets(monkeypatch):
     assert limiter.allow("b")  # limits are per client
     now[0] += 61
     assert limiter.allow("a")
+
+
+def test_chat_page_and_its_files_are_served(store, embedder, tmp_path):
+    with make_client(store, embedder, tmp_path, FakeChatClient()) as client:
+        page = client.get("/")
+        assert page.status_code == 200 and "text/html" in page.headers["content-type"]
+        assert "/static/app.js" in page.text
+        assert client.get("/static/app.js").status_code == 200
+        assert client.get("/static/style.css").status_code == 200
+
+
+def test_sources_include_the_passage_text(store, embedder, tmp_path):
+    chat = FakeChatClient([gemini_response("Yes [1].")])
+    with make_client(store, embedder, tmp_path, chat) as client:
+        source = client.post("/ask", json={"question": "Can I return a dripper?"}).json()["sources"][0]
+    assert source["text"].startswith("Returning a product")

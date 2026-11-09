@@ -45,7 +45,7 @@ class Assistant:
     def ask(self, question):
         start = time.perf_counter()
         hits = self.retrieve(question)
-        sources = [{"n": n, "source": c.source, "section": c.section, "similarity": score}
+        sources = [{"n": n, "source": c.source, "section": c.section, "similarity": score, "text": c.text}
                    for n, (c, score) in enumerate(hits, 1)]
         try:
             generation = self.generator.generate(SYSTEM_PROMPT, build_prompt(question, hits))

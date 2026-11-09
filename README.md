@@ -37,10 +37,14 @@ The answer came from the fallback model because the main one was overloaded at t
 4. **Answer** ([`assistant/rag.py`](assistant/rag.py)): the retrieved chunks go into the prompt as numbered sources. The system instruction tells the model to answer only from those sources, cite them as `[1]`, `[2]`, point the customer to the shop's email when the sources don't cover the question, and answer in the language of the question.
 5. **Reliability** ([`assistant/llm.py`](assistant/llm.py)): errors 429/500/502/503 are retried twice (after 2 s and 4 s), then the next model in the fallback list is used. Timeouts (60 s) and 504 go straight to the next model. A dropped connection is retried like a busy model; this covers both `httpx` and `httpx2`, which `google-genai` 3.x uses under the hood. A blocked answer is replaced by a polite "can't help with that".
 
+## Chat page
+The app also serves a small chat page at `/` (plain HTML, CSS and JavaScript in [`assistant/static/`](assistant/static/), no framework). It sends the question to `POST /ask` and shows the answer with clickable citations: clicking `[1]` opens the passage the answer came from. Under each answer you can see the model, the tokens, the estimated cost and the response time.
+
 ## API
 | Endpoint | What it does |
 |---|---|
-| `POST /ask` | answer a question (3–500 characters) with sources, model, tokens, estimated cost and latency |
+| `GET /` | the chat page |
+| `POST /ask` | answer a question (3–500 characters) with sources (file, section, similarity and the passage text), model, tokens, estimated cost and latency |
 | `GET /stats` | summary of the call log: requests, errors, average and p95 latency, tokens and cost per model |
 | `GET /health` | status and the number of indexed chunks |
 | `GET /docs` | interactive Swagger documentation (FastAPI) |
@@ -97,7 +101,7 @@ python -m assistant.ingest            # builds the index in index/
 uvicorn assistant.api:app --reload
 ```
 
-Then open http://127.0.0.1:8000/docs and try `POST /ask`. If the index doesn't exist yet, the API builds it on the first start.
+Then open http://127.0.0.1:8000 for the chat page, or http://127.0.0.1:8000/docs to try the API. If the index doesn't exist yet, the API builds it on the first start.
 
 With Docker:
 ```powershell
@@ -111,7 +115,7 @@ Settings (environment variables): `GEMINI_MODEL` (default `gemini-3.8-flash`), `
 ```powershell
 python -m pytest
 ```
-34 tests, and none of them call the Gemini API: a bag-of-words embedder and a fake chat client stand in for it, so they run without a key and cost nothing. They cover chunking, the vector store, prompt building, retries and fallback models, timeouts and dropped connections (`httpx` and `httpx2`), cost estimates, the call log and stats, the API endpoints (validation, 503, rate limit) and the eval checks. GitHub Actions runs them on every push and also builds the Docker image.
+36 tests, and none of them call the Gemini API: a bag-of-words embedder and a fake chat client stand in for it, so they run without a key and cost nothing. They cover chunking, the vector store, prompt building, retries and fallback models, timeouts and dropped connections (`httpx` and `httpx2`), cost estimates, the call log and stats, the API endpoints (validation, 503, rate limit, the chat page) and the eval checks. GitHub Actions runs them on every push and also builds the Docker image.
 
 ## Project structure
 ```
@@ -125,6 +129,7 @@ assistant/
   rag.py          retrieval, prompt and answer
   monitoring.py   call log and stats
   api.py          FastAPI app and rate limiter
+  static/         chat page (HTML, CSS, JavaScript)
 docs/             the shop's help pages (the knowledge base)
 evals/            eval questions and the eval script
 tests/

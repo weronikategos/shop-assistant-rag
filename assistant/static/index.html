@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coffee Shop Help</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">&#9749;</span>
+      <div>
+        <h1>Coffee Shop Help</h1>
+        <p>Ask about shipping, returns, payments or our products. Answers come from the shop's help pages, with sources.</p>
+      </div>
+    </div>
+    <nav>
+      <a href="/stats" target="_blank">Stats</a>
+      <a href="/docs" target="_blank">API docs</a>
+      <a href="https://github.com/weronikategos/shop-assistant-rag" target="_blank">Code</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="thread" aria-live="polite">
+      <div class="intro">
+        <p>Try one of these:</p>
+        <div class="examples">
+          <button type="button">How much is delivery to a parcel locker?</button>
+          <button type="button">Can I return an opened bag of coffee?</button>
+          <button type="button">At what temperature should I brew Sencha?</button>
+          <button type="button">Do you repair espresso machines?</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <form id="ask-form" class="ask">
+    <label for="question" class="visually-hidden">Your question</label>
+    <input id="question" name="question" type="text" minlength="3" maxlength="500" autocomplete="off"
+           placeholder="Ask a question..." required>
+    <button type="submit">Ask</button>
+  </form>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
