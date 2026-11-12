@@ -34,7 +34,7 @@ function formatAnswer(text, messageId) {
   return blocks.join("");
 }
 
-const AVATAR = `<div class="avatar" aria-hidden="true"><svg viewBox="0 0 32 32">
+const AVATAR = `<div class="avatar" aria-hidden="true"><svg viewBox="0 0 32 32" width="18" height="18">
   <ellipse cx="16" cy="16" rx="10" ry="14" transform="rotate(30 16 16)"/><path d="M12 6c6 6 2 14 8 20"/></svg></div>`;
 
 function addMessage(role, html) {
