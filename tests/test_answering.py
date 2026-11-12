@@ -155,3 +155,29 @@ def test_network_errors_from_the_sdk_transport_are_handled(store, embedder, tmp_
     assert [r["model"] for r in slow.requests] == ["main-model", "backup"]
 
     assert "interrupted" in friendly_error(httpx2.ReadError("reset"))
+
+
+def thinking_error():
+    return errors.ClientError(400, {"error": {"code": 400, "message": "Thinking level is not supported for this model.",
+                                              "status": "INVALID_ARGUMENT"}})
+
+
+def test_thinking_level_is_sent_to_the_model():
+    client = FakeChatClient()
+    GeminiGenerator(client=client, model="m", fallback_models=[], thinking_level="LOW").generate("sys", "q")
+    assert client.requests[0]["config"].thinking_config.thinking_level.value == "LOW"
+
+
+def test_model_without_thinking_levels_is_asked_again_without_them():
+    client = FakeChatClient([gemini_response("Hi"), gemini_response("Again")], errors_by_model={"old": [thinking_error()]})
+    generator = GeminiGenerator(client=client, model="old", fallback_models=[], thinking_level="LOW")
+    assert generator.generate("sys", "q").text == "Hi"
+    assert client.requests[1]["config"].thinking_config is None
+    generator.generate("sys", "q")  # remembered: no failed request the second time
+    assert len(client.requests) == 3 and client.requests[2]["config"].thinking_config is None
+
+
+def test_thinking_level_can_be_turned_off():
+    client = FakeChatClient()
+    GeminiGenerator(client=client, model="m", fallback_models=[], thinking_level="").generate("sys", "q")
+    assert client.requests[0]["config"].thinking_config is None

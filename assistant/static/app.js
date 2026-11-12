@@ -89,6 +89,16 @@ async function ask(question) {
   const reply = addMessage("bot", `<p class="thinking">Looking through the help pages...</p>`);
   button.disabled = true;
 
+  // On the free tier a busy model can take a while before the backup one answers
+  const status = (text) => {
+    const line = reply.querySelector(".thinking");
+    if (line) line.textContent = text;
+  };
+  const timers = [
+    setTimeout(() => status("Still working on it..."), 8000),
+    setTimeout(() => status("The model is busy, trying a backup one. This can take up to a minute..."), 20000),
+  ];
+
   try {
     const response = await fetch("/ask", {
       method: "POST",
@@ -102,6 +112,7 @@ async function ask(question) {
   } catch (_) {
     reply.querySelector(".bubble").innerHTML = `<p class="error">Can't reach the server. Check your connection.</p>`;
   } finally {
+    timers.forEach(clearTimeout);
     button.disabled = false;
     input.focus();
   }

@@ -14,6 +14,10 @@ CHAT_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 FALLBACK_MODELS = [m.strip() for m in os.environ.get("GEMINI_FALLBACK_MODELS", "gemini-3.6-flash,gemini-3.5-flash-lite").split(",")
                    if m.strip()]
 TOP_K = int(os.environ.get("TOP_K", "4"))
+# A slow model is worse than a backup one: after this many seconds the next model is tried
+REQUEST_TIMEOUT_S = int(os.environ.get("REQUEST_TIMEOUT_S", "20"))
+# Short answers from a few sources don't need much reasoning; "" leaves the model's default
+THINKING_LEVEL = os.environ.get("THINKING_LEVEL", "low").strip().upper()
 
 # Paid-tier list prices in USD per 1M tokens (Gemini API pricing page, valid through 2026-12-31).
 # On the free tier requests cost nothing; the log shows what the same traffic would cost on the paid tier.

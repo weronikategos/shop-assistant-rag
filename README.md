@@ -35,7 +35,7 @@ The answer came from the fallback model because the main one was overloaded at t
 2. **Embeddings** ([`assistant/embeddings.py`](assistant/embeddings.py)): chunks are embedded with `gemini-embedding-2` (768 dimensions) in batches of 20. Documents and questions get different prefixes (`title: … | text: …` and `task: question answering | query: …`), which is how this model tells them apart.
 3. **Vector store** ([`assistant/store.py`](assistant/store.py)): Chroma, saved on disk in `index/`, with cosine distance. A search returns the top 4 chunks with their similarity.
 4. **Answer** ([`assistant/rag.py`](assistant/rag.py)): the retrieved chunks go into the prompt as numbered sources. The system instruction tells the model to answer only from those sources, cite them as `[1]`, `[2]`, point the customer to the shop's email when the sources don't cover the question, and answer in the language of the question.
-5. **Reliability** ([`assistant/llm.py`](assistant/llm.py)): errors 429/500/502/503 are retried twice (after 2 s and 4 s), then the next model in the fallback list is used. Timeouts (60 s) and 504 go straight to the next model. A dropped connection is retried like a busy model; this covers both `httpx` and `httpx2`, which `google-genai` 3.x uses under the hood. A blocked answer is replaced by a polite "can't help with that".
+5. **Reliability** ([`assistant/llm.py`](assistant/llm.py)): errors 429/500/502/503 are retried twice (after 2 s and 4 s), then the next model in the fallback list is used. A model that doesn't answer within 20 seconds, or returns 504, is skipped and the next one is asked straight away: a backup model that answers is better than a long wait. The model is asked to think at the `low` level, because a short answer from a few sources doesn't need long reasoning; this makes answers faster and uses fewer output tokens (models that don't support thinking levels are asked again without the setting). While a slow answer is on its way, the chat page tells the user that it's still working. A dropped connection is retried like a busy model; this covers both `httpx` and `httpx2`, which `google-genai` 3.x uses under the hood. A blocked answer is replaced by a polite "can't help with that".
 
 ## Chat page
 The app also serves a small chat page at `/` (plain HTML, CSS and JavaScript in [`assistant/static/`](assistant/static/), no framework). It sends the question to `POST /ask` and shows the answer with clickable citations: clicking `[1]` opens the passage the answer came from. Under each answer you can see the model, the tokens, the estimated cost and the response time.
@@ -109,13 +109,13 @@ docker build -t shop-assistant .
 docker run -p 8000:8000 -e GEMINI_API_KEY=your-key shop-assistant
 ```
 
-Settings (environment variables): `GEMINI_MODEL` (default `gemini-3.8-flash`), `GEMINI_FALLBACK_MODELS` (default `gemini-3.6-flash,gemini-3.5-flash-lite`), `TOP_K` (default 4), `RATE_LIMIT_PER_MINUTE` (default 10).
+Settings (environment variables): `GEMINI_MODEL` (default `gemini-3.8-flash`), `GEMINI_FALLBACK_MODELS` (default `gemini-3.6-flash,gemini-3.5-flash-lite`), `TOP_K` (default 4), `REQUEST_TIMEOUT_S` (default 20), `THINKING_LEVEL` (default `low`, empty for the model's default), `RATE_LIMIT_PER_MINUTE` (default 10).
 
 ## Tests
 ```powershell
 python -m pytest
 ```
-36 tests, and none of them call the Gemini API: a bag-of-words embedder and a fake chat client stand in for it, so they run without a key and cost nothing. They cover chunking, the vector store, prompt building, retries and fallback models, timeouts and dropped connections (`httpx` and `httpx2`), cost estimates, the call log and stats, the API endpoints (validation, 503, rate limit, the chat page) and the eval checks. GitHub Actions runs them on every push and also builds the Docker image.
+39 tests, and none of them call the Gemini API: a bag-of-words embedder and a fake chat client stand in for it, so they run without a key and cost nothing. They cover chunking, the vector store, prompt building, retries and fallback models, the thinking level setting, timeouts and dropped connections (`httpx` and `httpx2`), cost estimates, the call log and stats, the API endpoints (validation, 503, rate limit, the chat page) and the eval checks. GitHub Actions runs them on every push and also builds the Docker image.
 
 ## Project structure
 ```

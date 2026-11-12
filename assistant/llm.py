@@ -19,7 +19,6 @@ TIMEOUT_ERRORS = (httpx.TimeoutException,) + ((httpx2.TimeoutException,) if http
 RETRY_CODES = (429, 500, 502, 503)  # worth another try on the same model
 FALLBACK_CODES = (404, 429, 500, 502, 503, 504)  # move on to the next model
 RETRY_DELAYS = (2, 4)  # seconds before the 2nd and 3rd attempt
-REQUEST_TIMEOUT_MS = 60_000
 BLOCKED_REASONS = {"SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII", "RECITATION"}
 
 
@@ -35,7 +34,7 @@ class Generation:
 
 def make_client():
     """Reads the API key from GEMINI_API_KEY."""
-    return genai.Client(http_options=types.HttpOptions(timeout=REQUEST_TIMEOUT_MS))
+    return genai.Client(http_options=types.HttpOptions(timeout=config.REQUEST_TIMEOUT_S * 1000))
 
 
 def _usage(response):
@@ -51,9 +50,16 @@ def _finish_reason(response):
     return getattr(reason, "name", reason)
 
 
+def _rejects_thinking_config(exc):
+    return exc.code == 400 and "thinking" in str(exc.message or "").lower()
+
+
 class GeminiGenerator:
-    def __init__(self, client=None, model=config.CHAT_MODEL, fallback_models=None, on_status=None):
+    def __init__(self, client=None, model=config.CHAT_MODEL, fallback_models=None, on_status=None,
+                 thinking_level=config.THINKING_LEVEL):
         self.client = client or make_client()
+        self.thinking_level = thinking_level
+        self.no_thinking_config = set()  # models that refused the thinking setting
         fallbacks = config.FALLBACK_MODELS if fallback_models is None else fallback_models
         self.models = [model] + [m for m in fallbacks if m != model]
         self.on_status = on_status or (lambda _message: None)
@@ -72,16 +78,28 @@ class GeminiGenerator:
                     raise
                 self.on_status(f"[fallback] switching to {self.models[i + 1]}")
 
+    def _config(self, model, system):
+        thinking = None
+        if self.thinking_level and model not in self.no_thinking_config:
+            thinking = types.ThinkingConfig(thinking_level=self.thinking_level)
+        return types.GenerateContentConfig(system_instruction=system, max_output_tokens=2048, thinking_config=thinking)
+
     def _generate_with(self, model, system, prompt):
-        cfg = types.GenerateContentConfig(system_instruction=system, max_output_tokens=2048)
         for attempt, delay in enumerate((*RETRY_DELAYS, None), start=1):
             try:
-                response = self.client.models.generate_content(model=model, contents=prompt, config=cfg)
+                response = self.client.models.generate_content(model=model, contents=prompt,
+                                                               config=self._config(model, system))
                 break
             except TIMEOUT_ERRORS as exc:
                 exc.attempts = attempt
-                raise  # it already waited a full minute, so try the next model instead
+                raise  # waiting longer rarely helps, so try the next model instead
             except errors.APIError as exc:
+                if _rejects_thinking_config(exc) and model not in self.no_thinking_config:
+                    # older models don't know thinking levels; next time ask with the model's defaults
+                    self.no_thinking_config.add(model)
+                    if delay is not None:
+                        self.on_status(f"[retry] {model}: no thinking level support, retrying without it")
+                        continue
                 if exc.code not in RETRY_CODES or delay is None:
                     exc.attempts = attempt
                     raise
