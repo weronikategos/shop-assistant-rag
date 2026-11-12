@@ -34,10 +34,13 @@ function formatAnswer(text, messageId) {
   return blocks.join("");
 }
 
+const AVATAR = `<div class="avatar" aria-hidden="true"><svg viewBox="0 0 32 32">
+  <ellipse cx="16" cy="16" rx="10" ry="14" transform="rotate(30 16 16)"/><path d="M12 6c6 6 2 14 8 20"/></svg></div>`;
+
 function addMessage(role, html) {
   const msg = document.createElement("div");
   msg.className = `msg ${role}`;
-  msg.innerHTML = `<div class="bubble">${html}</div>`;
+  msg.innerHTML = `${role === "bot" ? AVATAR : ""}<div class="bubble${role === "bot" ? " glass" : ""}">${html}</div>`;
   thread.appendChild(msg);
   msg.scrollIntoView({ behavior: "smooth", block: "end" });
   return msg;
@@ -51,12 +54,19 @@ function passageText(source) {
 }
 
 function renderSources(sources, messageId) {
-  const items = sources.map((s) => `
+  const items = sources.map((s) => {
+    const percent = Math.round(Math.max(0, Math.min(1, s.similarity)) * 100);
+    return `
     <div class="source" id="${messageId}-src-${s.n}">
-      <div class="source-head">[${s.n}] ${escapeHtml(s.source)} &middot; ${escapeHtml(s.section)}
-        <span>similarity ${s.similarity.toFixed(2)}</span></div>
+      <div class="source-head">
+        <div class="source-title">[${s.n}] ${escapeHtml(s.section)}<small>${escapeHtml(s.source)}</small></div>
+        <div class="score" title="Cosine similarity to the question">
+          <div class="score-bar"><span style="width: ${percent}%"></span></div>${s.similarity.toFixed(2)}
+        </div>
+      </div>
       <p class="source-text">${escapeHtml(passageText(s))}</p>
-    </div>`).join("");
+    </div>`;
+  }).join("");
   return `<details class="sources"><summary>Sources (${sources.length})</summary>${items}</details>`;
 }
 
@@ -66,7 +76,7 @@ function renderAnswer(data, messageId) {
     <div class="meta">
       <span>${escapeHtml(data.model)}</span>
       <span>${data.input_tokens} in / ${data.output_tokens} out tokens</span>
-      <span>~${cost} at paid-tier prices</span>
+      <span title="Estimated at paid-tier prices; the free tier isn't billed">~${cost}</span>
       <span>${(data.latency_ms / 1000).toFixed(1)} s</span>
     </div>`;
   return formatAnswer(data.answer, messageId) + meta + renderSources(data.sources, messageId);
@@ -85,8 +95,10 @@ let counter = 0;
 
 async function ask(question) {
   const messageId = `m${++counter}`;
+  document.body.classList.add("chatting");
   addMessage("user", escapeHtml(question));
-  const reply = addMessage("bot", `<p class="thinking">Looking through the help pages...</p>`);
+  const reply = addMessage("bot",
+    `<div class="typing"><span class="dots"><i></i><i></i><i></i></span><span class="thinking">Looking through the help pages...</span></div>`);
   button.disabled = true;
 
   // On the free tier a busy model can take a while before the backup one answers
@@ -126,12 +138,12 @@ form.addEventListener("submit", (event) => {
   ask(question);
 });
 
+document.querySelector(".examples").addEventListener("click", (event) => {
+  const example = event.target.closest(".example");
+  if (example && !button.disabled) ask(example.dataset.question);
+});
+
 thread.addEventListener("click", (event) => {
-  const example = event.target.closest(".examples button");
-  if (example) {
-    if (!button.disabled) ask(example.textContent);
-    return;
-  }
   const cite = event.target.closest(".cite");
   if (!cite) return;
   const source = document.getElementById(cite.dataset.target);

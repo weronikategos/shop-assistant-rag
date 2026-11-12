@@ -4,43 +4,71 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Coffee Shop Help</title>
+  <meta name="description" content="Ask the coffee shop about shipping, returns, payments and products. Answers come from the shop's help pages, with sources.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cellipse cx='16' cy='16' rx='10' ry='14' fill='%236b4a33' transform='rotate(30 16 16)'/%3E%3Cpath d='M12 6c6 6 2 14 8 20' stroke='%23f3e9dc' stroke-width='2' fill='none'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <header class="top">
-    <div class="brand">
-      <span class="logo" aria-hidden="true">&#9749;</span>
-      <div>
-        <h1>Coffee Shop Help</h1>
-        <p>Ask about shipping, returns, payments or our products. Answers come from the shop's help pages, with sources.</p>
-      </div>
-    </div>
+  <div class="backdrop" aria-hidden="true">
+    <span class="blob blob-coffee"></span>
+    <span class="blob blob-sage"></span>
+    <span class="blob blob-cream"></span>
+  </div>
+
+  <header class="top glass">
+    <a class="brand" href="/">
+      <svg class="bean" viewBox="0 0 32 32" aria-hidden="true">
+        <ellipse cx="16" cy="16" rx="10" ry="14" transform="rotate(30 16 16)"/>
+        <path d="M12 6c6 6 2 14 8 20"/>
+      </svg>
+      <span>Coffee Shop <em>Help</em></span>
+    </a>
     <nav>
-      <a href="/stats" target="_blank">Stats</a>
-      <a href="/docs" target="_blank">API docs</a>
-      <a href="https://github.com/weronikategos/shop-assistant-rag" target="_blank">Code</a>
+      <a href="/stats" target="_blank" rel="noopener">Stats</a>
+      <a href="/docs" target="_blank" rel="noopener">API</a>
+      <a href="https://github.com/weronikategos/shop-assistant-rag" target="_blank" rel="noopener">Code</a>
     </nav>
   </header>
 
   <main>
-    <section id="thread" aria-live="polite">
-      <div class="intro">
-        <p>Try one of these:</p>
-        <div class="examples">
-          <button type="button">How much is delivery to a parcel locker?</button>
-          <button type="button">Can I return an opened bag of coffee?</button>
-          <button type="button">At what temperature should I brew Sencha?</button>
-          <button type="button">Do you repair espresso machines?</button>
-        </div>
+    <section class="hero" id="hero">
+      <p class="eyebrow"><span class="dot"></span> Answers from our help pages</p>
+      <h1>How can we help with your&nbsp;coffee?</h1>
+      <p class="lead">Ask about shipping, returns, payments or our products. Every answer shows the pages it comes from, and if we don't know, we'll say so.</p>
+
+      <div class="examples">
+        <button type="button" class="example glass" data-question="How much is delivery to a parcel locker?">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="17.5" r="1.6"/><circle cx="17.5" cy="17.5" r="1.6"/></svg>
+          <span><strong>Shipping</strong>How much is delivery to a parcel locker?</span>
+        </button>
+        <button type="button" class="example glass" data-question="Can I return an opened bag of coffee?">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/></svg>
+          <span><strong>Returns</strong>Can I return an opened bag of coffee?</span>
+        </button>
+        <button type="button" class="example glass" data-question="At what temperature should I brew Sencha?">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c0-8 6-14 15-14 0 9-6 15-14 15"/><path d="M5 19l8-8"/></svg>
+          <span><strong>Tea</strong>At what temperature should I brew Sencha?</span>
+        </button>
+        <button type="button" class="example glass" data-question="Do you repair espresso machines?">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7"/><circle cx="12" cy="17" r=".6"/></svg>
+          <span><strong>Not in the pages</strong>Do you repair espresso machines?</span>
+        </button>
       </div>
     </section>
+
+    <section id="thread" class="thread" aria-live="polite"></section>
   </main>
 
-  <form id="ask-form" class="ask">
+  <form id="ask-form" class="composer glass">
     <label for="question" class="visually-hidden">Your question</label>
     <input id="question" name="question" type="text" minlength="3" maxlength="500" autocomplete="off"
-           placeholder="Ask a question..." required>
-    <button type="submit">Ask</button>
+           placeholder="Ask about shipping, returns, products..." required>
+    <button type="submit" aria-label="Send question">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+    </button>
   </form>
 
   <script src="/static/app.js"></script>
