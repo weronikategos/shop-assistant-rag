@@ -92,7 +92,7 @@ python -m evals.run_evals --only q05 q16     # chosen questions
 
 API errors (for example the free-tier rate limit) are counted separately and don't stop the run.
 
-**Results (9 November 2026, free tier):** retrieval found the right page for all 15 questions that have an answer in the help pages, and all 17 answers passed the checks (15 contained the key fact with a citation, 2 out-of-scope questions were declined with the shop's email). The main model, `gemini-3.8-flash`, was often overloaded or timed out on the free tier that day, so 19 of the 21 calls were answered by the fallback model `gemini-3.6-flash` (and one by `gemini-3.5-flash-lite`). That is also why the latency was high: about 51 s on average and 84 s at p95, most of it spent waiting for the main model before falling back. The costs above are estimates at paid-tier list prices; nothing was billed.
+**Results (9 November 2026, free tier):** retrieval found the right page for all 15 questions that have an answer in the help pages, and all 17 answers passed the checks (15 contained the key fact with a citation, 2 out-of-scope questions were declined with the shop's email). The main model, `gemini-3.8-flash`, was often overloaded or timed out on the free tier that day, so 19 of the 21 calls were answered by the fallback model `gemini-3.6-flash` (and one by `gemini-3.5-flash-lite`). That is also why the latency was high: about 51 s on average and 84 s at p95, most of it spent waiting for the main model before falling back. After this run the timeout was cut to 20 s, the thinking level set to `low`, and `gemini-3.6-flash` became the main model with `gemini-3.8-flash` as a fallback. The costs above are estimates at paid-tier list prices; nothing was billed.
 
 ## Running it locally
 You need a free Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey).
@@ -114,7 +114,9 @@ docker build -t shop-assistant .
 docker run -p 8000:8000 -e GEMINI_API_KEY=your-key shop-assistant
 ```
 
-Settings (environment variables): `GEMINI_MODEL` (default `gemini-3.8-flash`), `GEMINI_FALLBACK_MODELS` (default `gemini-3.6-flash,gemini-3.5-flash-lite`), `TOP_K` (default 4), `REQUEST_TIMEOUT_S` (default 20), `THINKING_LEVEL` (default `low`, empty for the model's default), `RATE_LIMIT_PER_MINUTE` (default 10).
+Deploying on Render: [`render.yaml`](render.yaml) describes the service (Docker, free plan, Frankfurt, health check on `/health`), so it can be created with *New > Blueprint*; Render asks for `GEMINI_API_KEY` during setup. A free instance has no persistent disk, so the index is rebuilt from the help pages on every start (two embedding requests) and the call log starts empty after each restart or deploy. It also sleeps after 15 minutes without traffic, and the first request after that takes about a minute.
+
+Settings (environment variables): `GEMINI_MODEL` (default `gemini-3.6-flash`), `GEMINI_FALLBACK_MODELS` (default `gemini-3.8-flash,gemini-3.5-flash-lite`), `TOP_K` (default 4), `REQUEST_TIMEOUT_S` (default 20), `THINKING_LEVEL` (default `low`, empty for the model's default), `RATE_LIMIT_PER_MINUTE` (default 10).
 
 ## Tests
 ```powershell

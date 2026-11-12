@@ -1,0 +1,13 @@
+# Render Blueprint: New > Blueprint > pick this repository.
+# Render asks for GEMINI_API_KEY when the service is created; it is never stored in the repository.
+services:
+  - type: web
+    name: shop-assistant-rag
+    runtime: docker
+    plan: free
+    region: frankfurt
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false

@@ -10,8 +10,9 @@ COLLECTION = "shop-docs"
 
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "gemini-embedding-2")
 EMBEDDING_DIM = 768
-CHAT_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
-FALLBACK_MODELS = [m.strip() for m in os.environ.get("GEMINI_FALLBACK_MODELS", "gemini-3.6-flash,gemini-3.5-flash-lite").split(",")
+# 3.6-flash goes first: on the free tier 3.8-flash timed out on most calls (see the call log in the README)
+CHAT_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
+FALLBACK_MODELS = [m.strip() for m in os.environ.get("GEMINI_FALLBACK_MODELS", "gemini-3.8-flash,gemini-3.5-flash-lite").split(",")
                    if m.strip()]
 TOP_K = int(os.environ.get("TOP_K", "4"))
 # A slow model is worse than a backup one: after this many seconds the next model is tried
