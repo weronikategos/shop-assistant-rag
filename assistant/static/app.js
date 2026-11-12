@@ -34,16 +34,28 @@ function formatAnswer(text, messageId) {
   return blocks.join("");
 }
 
-const AVATAR = `<div class="avatar" aria-hidden="true"><svg viewBox="0 0 32 32" width="18" height="18">
-  <ellipse cx="16" cy="16" rx="10" ry="14" transform="rotate(30 16 16)"/><path d="M12 6c6 6 2 14 8 20"/></svg></div>`;
+const GREETING = "Hi, I'm Benny! Ask me about shipping, returns, payments, coffee or tea.";
 
 function addMessage(role, html) {
   const msg = document.createElement("div");
   msg.className = `msg ${role}`;
-  msg.innerHTML = `${role === "bot" ? AVATAR : ""}<div class="bubble${role === "bot" ? " glass" : ""}">${html}</div>`;
+  if (role === "bot") {
+    // only the newest Benny moves; the earlier ones stand still
+    thread.querySelectorAll(".msg.bot .mascot").forEach((m) => m.classList.add("quiet"));
+    const avatar = createMascot();
+    avatar.classList.add("avatar");
+    msg.appendChild(avatar);
+    msg.insertAdjacentHTML("beforeend", `<div class="bubble glass"><span class="name">Benny</span>${html}</div>`);
+  } else {
+    msg.innerHTML = `<div class="bubble">${html}</div>`;
+  }
   thread.appendChild(msg);
   msg.scrollIntoView({ behavior: "smooth", block: "end" });
   return msg;
+}
+
+function setBubble(msg, html) {
+  msg.querySelector(".bubble").innerHTML = `<span class="name">Benny</span>${html}`;
 }
 
 // Chunks start with their section heading and keep the Markdown of the help pages
@@ -95,10 +107,15 @@ let counter = 0;
 
 async function ask(question) {
   const messageId = `m${++counter}`;
-  document.body.classList.add("chatting");
+  if (!document.body.classList.contains("chatting")) {
+    document.body.classList.add("chatting");
+    addMessage("bot", `<p>${GREETING}</p>`);
+  }
   addMessage("user", escapeHtml(question));
   const reply = addMessage("bot",
-    `<div class="typing"><span class="dots"><i></i><i></i><i></i></span><span class="thinking">Looking through the help pages...</span></div>`);
+    `<div class="typing"><span class="dots"><i></i><i></i><i></i></span><span class="thinking">Let me look that up...</span></div>`);
+  const benny = reply.querySelector(".mascot");
+  const stopWorking = startWorking(benny);
   button.disabled = true;
 
   // On the free tier a busy model can take a while before the backup one answers
@@ -107,8 +124,8 @@ async function ask(question) {
     if (line) line.textContent = text;
   };
   const timers = [
-    setTimeout(() => status("Still working on it..."), 8000),
-    setTimeout(() => status("The model is busy, trying a backup one. This can take up to a minute..."), 20000),
+    setTimeout(() => status("Still digging through the help pages..."), 8000),
+    setTimeout(() => status("It's busy in here today, I'm asking a backup model. This can take up to a minute..."), 20000),
   ];
 
   try {
@@ -117,12 +134,19 @@ async function ask(question) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question }),
     });
-    const html = response.ok
-      ? renderAnswer(await response.json(), messageId)
-      : `<p class="error">${escapeHtml(await errorMessage(response))}</p>`;
-    reply.querySelector(".bubble").innerHTML = html;
+    stopWorking();
+    if (response.ok) {
+      setBubble(reply, renderAnswer(await response.json(), messageId));
+      setMood(benny, "happy");
+      setTimeout(() => setMood(benny, ""), 1400);
+    } else {
+      setBubble(reply, `<p class="error">${escapeHtml(await errorMessage(response))}</p>`);
+      setMood(benny, "sad");
+    }
   } catch (_) {
-    reply.querySelector(".bubble").innerHTML = `<p class="error">Can't reach the server. Check your connection.</p>`;
+    stopWorking();
+    setBubble(reply, `<p class="error">Can't reach the server. Check your connection.</p>`);
+    setMood(benny, "sad");
   } finally {
     timers.forEach(clearTimeout);
     button.disabled = false;
@@ -153,3 +177,10 @@ thread.addEventListener("click", (event) => {
   source.classList.add("highlight");
   setTimeout(() => source.classList.remove("highlight"), 1500);
 });
+
+// Benny waves hello when the page opens, and again when you point at him
+const heroMascot = createMascot("waving");
+document.getElementById("hero-mascot").replaceWith(heroMascot);
+setTimeout(() => setMood(heroMascot, ""), 3500);
+heroMascot.addEventListener("mouseenter", () => setMood(heroMascot, "waving"));
+heroMascot.addEventListener("mouseleave", () => setMood(heroMascot, ""));

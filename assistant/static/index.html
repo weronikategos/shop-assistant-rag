@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css?v=3">
+  <link rel="stylesheet" href="/static/style.css?v=4">
 </head>
 <body>
   <div class="backdrop" aria-hidden="true">
@@ -35,9 +35,14 @@
 
   <main>
     <section class="hero" id="hero">
-      <p class="eyebrow"><span class="dot"></span> Answers from our help pages</p>
-      <h1>How can we help with your&nbsp;coffee?</h1>
-      <p class="lead">Ask about shipping, returns, payments or our products. Every answer shows the pages it comes from, and if we don't know, we'll say so.</p>
+      <div class="greeting">
+        <div id="hero-mascot"></div>
+        <p class="speech glass">Hi, I'm <strong>Benny</strong>! I know our shop's help pages by heart: shipping, returns,
+          payments, coffee and tea. Ask me anything, I'll show you where my answer comes from, and if I don't know,
+          I'll tell you.</p>
+      </div>
+      <h1>How can I help with your&nbsp;coffee?</h1>
+      <p class="lead">Pick a question or type your own below.</p>
 
       <div class="examples">
         <button type="button" class="example glass" data-question="How much is delivery to a parcel locker?">
@@ -71,6 +76,7 @@
     </button>
   </form>
 
-  <script src="/static/app.js?v=3"></script>
+  <script src="/static/mascot.js?v=4"></script>
+  <script src="/static/app.js?v=4"></script>
 </body>
 </html>
