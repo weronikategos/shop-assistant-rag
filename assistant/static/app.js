@@ -40,8 +40,11 @@ function addMessage(role, html) {
   const msg = document.createElement("div");
   msg.className = `msg ${role}`;
   if (role === "bot") {
-    // only the newest Benny moves; the earlier ones stand still
-    thread.querySelectorAll(".msg.bot .mascot").forEach((m) => m.classList.add("quiet"));
+    // Benny moves along with the conversation: he stands only next to the newest answer
+    thread.querySelectorAll(".msg.bot .mascot").forEach((m) => {
+      m.closest(".msg").classList.add("past");
+      m.remove();
+    });
     const avatar = createMascot();
     avatar.classList.add("avatar");
     msg.appendChild(avatar);

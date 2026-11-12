@@ -605,4 +605,63 @@ tbody tr:last-child td { border-bottom: none; }
   .speech { margin-bottom: 50px; font-size: 14px; }
   .msg.bot .avatar.mascot { display: block; width: 42px; }
 }
-.mascot.quiet .figure, .mascot.quiet .eye { animation: none; }
+
+/* ---------- chat layout: header, scrolling conversation, composer ---------- */
+/* Only the conversation scrolls, so nothing slides under the header or the composer */
+body.chat {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+body.chat .top {
+  position: relative;
+  top: auto;
+  flex: none;
+  width: min(880px, calc(100% - 24px));
+}
+body.chat main {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 20px 16px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 20px, #000 calc(100% - 20px), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 20px, #000 calc(100% - 20px), transparent 100%);
+}
+body.chat main > * { width: 100%; max-width: 760px; margin-inline: auto; }
+body.chat .hero { margin-block: auto; }
+body.chat .composer {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  transform: none;
+  flex: none;
+  margin: 4px auto 16px;
+}
+
+/* a more compact start screen, so it fits without scrolling */
+.greeting { margin-bottom: 8px; }
+.greeting .mascot { width: 110px; }
+.speech { margin-bottom: 56px; font-size: 14px; }
+body.chat h1 { font-size: clamp(28px, 4.5vw, 40px); }
+body.chat .lead { margin: 8px auto 20px; }
+.example { padding: 12px 14px; }
+
+/* Benny stands only next to the newest answer; older answers keep their place */
+.msg.bot.past { padding-left: 68px; }
+
+@media (max-width: 600px) {
+  .greeting .mascot { width: 84px; }
+  .speech { margin-bottom: 40px; }
+  .msg.bot.past { padding-left: 52px; }
+}
+@media (max-height: 700px) {
+  .greeting .mascot { width: 84px; }
+  .speech { margin-bottom: 36px; padding: 10px 14px; }
+}
