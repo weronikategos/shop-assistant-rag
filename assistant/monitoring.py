@@ -6,6 +6,10 @@ from pathlib import Path
 
 from . import config
 
+# What the dashboard may show about a single call; the question text stays in the log only
+PUBLIC_FIELDS = ("time", "status", "model", "attempts", "latency_ms", "input_tokens", "output_tokens",
+                 "estimated_cost_usd", "error")
+
 
 class CallLog:
     def __init__(self, path=config.LOG_FILE):
@@ -32,7 +36,9 @@ class CallLog:
         by_model = {}
         for r in ok:
             model = by_model.setdefault(r["model"], {"requests": 0, "input_tokens": 0, "output_tokens": 0,
-                                                     "estimated_cost_usd": 0.0})
+                                                     "estimated_cost_usd": 0.0, "avg_latency_ms": 0})
+            model["avg_latency_ms"] = round((model["avg_latency_ms"] * model["requests"] + r["latency_ms"])
+                                            / (model["requests"] + 1))
             model["requests"] += 1
             model["input_tokens"] += r["input_tokens"]
             model["output_tokens"] += r["output_tokens"]
@@ -52,3 +58,7 @@ class CallLog:
             "by_model": by_model,
             "note": "Costs are estimated at paid-tier list prices; requests on the free tier are not billed.",
         }
+
+    def recent(self, limit=50):
+        """The last `limit` calls, oldest first, without the questions."""
+        return [{k: r[k] for k in PUBLIC_FIELDS if k in r} for r in self.records()[-limit:]]

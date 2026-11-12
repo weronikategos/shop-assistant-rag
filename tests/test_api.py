@@ -94,3 +94,22 @@ def test_sources_include_the_passage_text(store, embedder, tmp_path):
     with make_client(store, embedder, tmp_path, chat) as client:
         source = client.post("/ask", json={"question": "Can I return a dripper?"}).json()["sources"][0]
     assert source["text"].startswith("Returning a product")
+
+
+def test_recent_calls_leave_out_the_questions(store, embedder, tmp_path):
+    chat = FakeChatClient([gemini_response(), gemini_response(), gemini_response()])
+    with make_client(store, embedder, tmp_path, chat) as client:
+        for question in ("Do you ship abroad?", "Can I pay by card?", "Is the mug dishwasher safe?"):
+            client.post("/ask", json={"question": question})
+        recent = client.get("/stats/recent", params={"limit": 2}).json()
+        assert client.get("/dashboard").status_code == 200
+    assert len(recent) == 2
+    assert recent[-1]["model"] == "main-model" and recent[-1]["input_tokens"] == 120
+    assert all("question" not in call and "sources" not in call for call in recent)
+
+
+def test_stats_include_latency_per_model(store, embedder, tmp_path):
+    with make_client(store, embedder, tmp_path, FakeChatClient()) as client:
+        client.post("/ask", json={"question": "Do you ship abroad?"})
+        by_model = client.get("/stats").json()["by_model"]
+    assert by_model["main-model"]["avg_latency_ms"] >= 0

@@ -40,12 +40,17 @@ The answer came from the fallback model because the main one was overloaded at t
 ## Chat page
 The app also serves a small chat page at `/` (plain HTML, CSS and JavaScript in [`assistant/static/`](assistant/static/), no framework). It sends the question to `POST /ask` and shows the answer with clickable citations: clicking `[1]` opens the passage the answer came from. Under each answer you can see the model, the tokens, the estimated cost and the response time. The design uses frosted-glass panels over a coffee, cream and sage palette, follows the system's light or dark theme, works on phones and respects reduced-motion settings.
 
+## Stats dashboard
+`/dashboard` shows the call log in a readable form: summary tiles (questions and failures, average and p95 response time, tokens, estimated cost per answer), bar charts of the response time and tokens of the recent calls (coloured by the model that answered, so fallbacks are easy to spot), a table per model and a list of recent calls. The charts are drawn as SVG in plain JavaScript, without a chart library, and the page refreshes every 30 seconds. Questions are never shown on the dashboard; they stay in the log file.
+
 ## API
 | Endpoint | What it does |
 |---|---|
 | `GET /` | the chat page |
+| `GET /dashboard` | the stats dashboard |
 | `POST /ask` | answer a question (3–500 characters) with sources (file, section, similarity and the passage text), model, tokens, estimated cost and latency |
-| `GET /stats` | summary of the call log: requests, errors, average and p95 latency, tokens and cost per model |
+| `GET /stats` | summary of the call log: requests, errors, average and p95 latency, tokens, cost and average latency per model |
+| `GET /stats/recent?limit=50` | the last calls (time, status, model, attempts, latency, tokens, cost), without the questions |
 | `GET /health` | status and the number of indexed chunks |
 | `GET /docs` | interactive Swagger documentation (FastAPI) |
 
@@ -115,7 +120,7 @@ Settings (environment variables): `GEMINI_MODEL` (default `gemini-3.8-flash`), `
 ```powershell
 python -m pytest
 ```
-39 tests, and none of them call the Gemini API: a bag-of-words embedder and a fake chat client stand in for it, so they run without a key and cost nothing. They cover chunking, the vector store, prompt building, retries and fallback models, the thinking level setting, timeouts and dropped connections (`httpx` and `httpx2`), cost estimates, the call log and stats, the API endpoints (validation, 503, rate limit, the chat page) and the eval checks. GitHub Actions runs them on every push and also builds the Docker image.
+41 tests, and none of them call the Gemini API: a bag-of-words embedder and a fake chat client stand in for it, so they run without a key and cost nothing. They cover chunking, the vector store, prompt building, retries and fallback models, the thinking level setting, timeouts and dropped connections (`httpx` and `httpx2`), cost estimates, the call log and stats, the API endpoints (validation, 503, rate limit, the chat page and the dashboard) and the eval checks. GitHub Actions runs them on every push and also builds the Docker image.
 
 ## Project structure
 ```
@@ -129,7 +134,7 @@ assistant/
   rag.py          retrieval, prompt and answer
   monitoring.py   call log and stats
   api.py          FastAPI app and rate limiter
-  static/         chat page (HTML, CSS, JavaScript)
+  static/         chat page and stats dashboard (HTML, CSS, JavaScript)
 docs/             the shop's help pages (the knowledge base)
 evals/            eval questions and the eval script
 tests/

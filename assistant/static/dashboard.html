@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Assistant Stats</title>
+  <meta name="description" content="Latency, token usage and estimated cost of the coffee shop assistant.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cellipse cx='16' cy='16' rx='10' ry='14' fill='%236b4a33' transform='rotate(30 16 16)'/%3E%3Cpath d='M12 6c6 6 2 14 8 20' stroke='%23f3e9dc' stroke-width='2' fill='none'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css?v=3">
+</head>
+<body class="dashboard">
+  <div class="backdrop" aria-hidden="true">
+    <span class="blob blob-coffee"></span>
+    <span class="blob blob-sage"></span>
+    <span class="blob blob-cream"></span>
+  </div>
+
+  <header class="top glass">
+    <a class="brand" href="/">
+      <svg class="bean" viewBox="0 0 32 32" width="26" height="26" aria-hidden="true">
+        <ellipse cx="16" cy="16" rx="10" ry="14" transform="rotate(30 16 16)"/>
+        <path d="M12 6c6 6 2 14 8 20"/>
+      </svg>
+      <span>Coffee Shop <em>Help</em></span>
+    </a>
+    <nav>
+      <a href="/">Chat</a>
+      <a href="/stats" target="_blank" rel="noopener">JSON</a>
+      <a href="/docs" target="_blank" rel="noopener">API</a>
+    </nav>
+  </header>
+
+  <main class="wide">
+    <div class="dash-head">
+      <div>
+        <p class="eyebrow"><span class="dot"></span> Live from the call log</p>
+        <h1>Assistant stats</h1>
+      </div>
+      <div class="dash-actions">
+        <span id="updated" class="muted"></span>
+        <button type="button" id="refresh" class="pill-button">Refresh</button>
+      </div>
+    </div>
+
+    <p id="empty" class="empty glass" hidden>No questions yet. <a href="/">Ask the assistant something</a> and come back.</p>
+
+    <section class="tiles" id="tiles" aria-label="Summary"></section>
+
+    <section class="charts">
+      <article class="card glass">
+        <header><h2>Response time</h2><p class="muted">last calls, in seconds; colour shows the model that answered</p></header>
+        <div id="latency-chart" class="chart" role="img" aria-label="Response time of recent calls"></div>
+        <div id="latency-legend" class="legend"></div>
+      </article>
+      <article class="card glass">
+        <header><h2>Tokens per call</h2><p class="muted">input (sources and question) and output (answer and thinking)</p></header>
+        <div id="tokens-chart" class="chart" role="img" aria-label="Tokens of recent calls"></div>
+        <div class="legend">
+          <span><i class="swatch" style="background: var(--caramel)"></i>input</span>
+          <span><i class="swatch" style="background: var(--sage)"></i>output</span>
+        </div>
+      </article>
+    </section>
+
+    <section class="card glass">
+      <header><h2>By model</h2><p class="muted">the main model and the backups it falls back to</p></header>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Model</th><th>Answers</th><th>Share</th><th>Avg time</th><th>Tokens in / out</th><th>Est. cost</th></tr></thead>
+          <tbody id="models"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card glass">
+      <header><h2>Recent calls</h2><p class="muted">newest first; questions are not shown</p></header>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Time</th><th>Status</th><th>Model</th><th>Attempts</th><th>Time</th><th>Tokens</th><th>Est. cost</th></tr></thead>
+          <tbody id="calls"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <p class="muted footnote" id="note"></p>
+  </main>
+
+  <script src="/static/dashboard.js?v=3"></script>
+</body>
+</html>

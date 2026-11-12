@@ -5,7 +5,7 @@ from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from google.genai import errors
@@ -102,12 +102,23 @@ def create_app(assistant=None, rate_limit=RATE_LIMIT):
             raise HTTPException(503, friendly_error(exc)) from exc
         return AnswerOut(**answer.__dict__)
 
-    @app.get("/stats")
-    def stats(request: Request):
+    @app.get("/dashboard", include_in_schema=False)
+    def dashboard_page():
+        return FileResponse(STATIC_DIR / "dashboard.html")
+
+    def call_log(request):
         log = request.app.state.assistant.log
         if log is None:
             raise HTTPException(404, "Logging is turned off.")
-        return log.stats()
+        return log
+
+    @app.get("/stats")
+    def stats(request: Request):
+        return call_log(request).stats()
+
+    @app.get("/stats/recent")
+    def recent_calls(request: Request, limit: int = Query(50, ge=1, le=500)):
+        return call_log(request).recent(limit)
 
     return app
 
