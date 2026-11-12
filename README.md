@@ -4,6 +4,8 @@
 
 A customer help assistant for my online coffee shop, served as a REST API. It answers questions about shipping, returns, payments and products using only the shop's help pages, and cites the pages it used. If the answer isn't in the pages, it says so instead of making something up.
 
+**Live demo:** [shop-assistant-rag-sjrl.onrender.com](https://shop-assistant-rag-sjrl.onrender.com) (chat) and [/dashboard](https://shop-assistant-rag-sjrl.onrender.com/dashboard) (stats). It runs on Render's free plan, so after 15 minutes without visitors it goes to sleep and the first page load takes about a minute. It also uses the free tier of the Gemini API, so an answer can take a while when the models are busy.
+
 It is built as retrieval-augmented generation (RAG): the help pages are split into chunks, turned into embeddings and stored in a vector database (Chroma). For each question the closest chunks are retrieved and the Gemini model writes the answer from them. Every call is logged with its latency, token usage and estimated cost.
 
 The help pages are in [`docs/`](docs/) and describe the same shop and products as my [flask-sql-shop](https://github.com/weronikategos/flask-sql-shop).
